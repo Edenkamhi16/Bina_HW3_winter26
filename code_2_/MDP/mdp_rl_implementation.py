@@ -24,10 +24,22 @@ def get_policy(mdp, U):
     # return: the policy
     #
 
-    policy = None
-    # TODO:
     # ====== YOUR CODE: ====== 
-
+    policy = None
+    for r in mdp.num_row:
+        for c in mdp.num_col:
+            if mdp.board[r][c] == ' WALL' or (r, c) in mdp.terminal_states:
+                policy[r][c] = None
+            else:
+                best_action = None
+                best_value = float('-inf')
+                for action in mdp.actions:
+                    probs = mdp.transition_function[action]
+                    cur_value = np.sum([probs[next_action] * U[mdp.step((r, c), mdp.actions[next_action])] for next_action in probs.keys()])
+                    if cur_value > best_value:
+                        best_value = cur_value
+                        best_action = action
+                policy[r][c] = best_action
     # ========================
     return policy
 
@@ -39,6 +51,14 @@ def policy_evaluation(mdp, policy):
     U = None
     # TODO:
     # ====== YOUR CODE: ======
+    for r in mdp.num_row:
+        for c in mdp.num_col:
+            if mdp.board[r][c] == ' WALL' or (r, c) in mdp.terminal_states:
+                U[r][c] = 0
+            else:
+                action = policy[r][c]
+                probs = mdp.transition_function[action]
+                U[r][c] = float(mdp.get_reward(r, c)) + np.sum([probs[next_action] * ( + mdp.gamma * U[mdp.step((r, c), next_action)]) for next_action in probs.keys()])
 
     # ========================
     return U
