@@ -71,6 +71,29 @@ def get_max_sum_action(mdp, U, state):
 
     return best_sum
 
+def get_max_action(mdp, U, state):
+    best_action = None
+    best_sum = float('-inf')
+    for action in mdp.actions:
+        action_sum = 0.0
+
+        probs = mdp.transition_function[action]
+        
+        for actual_action, prob in zip(mdp.actions, probs):
+            next_state = mdp.step(state, actual_action)
+            u_next = U[next_state[0]][next_state[1]]
+            
+            if u_next is None:
+                u_next = 0.0
+
+            action_sum += prob * u_next
+
+
+        if action_sum > best_sum:
+            best_sum = action_sum
+            best_action = action
+
+    return best_action
 
 def get_policy(mdp, U):
     # Given the mdp and the utility of each state - U (which satisfies the Belman equation)
@@ -78,21 +101,13 @@ def get_policy(mdp, U):
     #
 
     # ====== YOUR CODE: ====== 
-    policy = None
-    for r in mdp.num_row:
-        for c in mdp.num_col:
-            if mdp.board[r][c] == ' WALL' or (r, c) in mdp.terminal_states:
+    policy = [[None for _ in range(mdp.num_col)] for _ in range(mdp.num_row)]
+    for r in range (mdp.num_row):
+        for c in range (mdp.num_col):
+            if mdp.board[r][c] == 'WALL' or (r, c) in mdp.terminal_states:
                 policy[r][c] = None
             else:
-                best_action = None
-                best_value = float('-inf')
-                for action in mdp.actions:
-                    probs = mdp.transition_function[action]
-                    cur_value = np.sum([probs[next_action] * U[mdp.step((r, c), mdp.actions[next_action])] for next_action in probs.keys()])
-                    if cur_value > best_value:
-                        best_value = cur_value
-                        best_action = action
-                policy[r][c] = best_action
+                policy[r][c] = get_max_action(mdp, U, (r, c))
     # ========================
     return policy
 
@@ -101,19 +116,45 @@ def policy_evaluation(mdp, policy):
     # Given the mdp, and a policy
     # return: the utility U(s) of each state s
     #
-    U = None
-    # TODO:
-    # ====== YOUR CODE: ======
-    for r in mdp.num_row:
-        for c in mdp.num_col:
-            if mdp.board[r][c] == ' WALL' or (r, c) in mdp.terminal_states:
-                U[r][c] = 0
-            else:
-                action = policy[r][c]
-                probs = mdp.transition_function[action]
-                U[r][c] = float(mdp.get_reward(r, c)) + np.sum([probs[next_action] * ( + mdp.gamma * U[mdp.step((r, c), next_action)]) for next_action in probs.keys()])
+    # Flatten state indices for matrix representation
+    state_indices = {}
+    idx = 0
+    for r in range(mdp.num_row):
+        for c in range(mdp.num_col):
+            if mdp.board[r][c] != 'WALL' : #and (r, c) not in mdp.terminal_states:
+                state_indices[(r, c)] = idx
+                idx += 1
+    n = len(state_indices)
 
-    # ========================
+    # Build R vector
+    R = np.zeros(n)
+    for (r, c), i in state_indices.items():
+        R[i] = float(mdp.get_reward((r, c)))
+
+    # Build transition matrix P_pi
+    P_pi = np.zeros((n, n))
+    for (r, c), i in state_indices.items():
+        if (r, c) in mdp.terminal_states:
+            continue
+        action = policy[r][c]
+        probs = mdp.transition_function[action]
+        for actual_action, prob in zip(mdp.actions, probs):
+            next_state = mdp.step((r, c), actual_action)
+            if next_state in state_indices:
+                j = state_indices[next_state]
+                P_pi[i, j] += prob
+
+    # Solve (I - gamma * P_pi) U = R
+    I = np.eye(n)
+    A = I - mdp.gamma * P_pi
+    U_vec = np.linalg.solve(A, R)
+
+    # Map back to grid
+    U = [[None if mdp.board[r][c] == 'WALL' else 0.0 for c in range(mdp.num_col)] for r in range(mdp.num_row)]
+    for (r, c), i in state_indices.items():
+        U[r][c] = U_vec[i]
+
+
     return U
 
 
