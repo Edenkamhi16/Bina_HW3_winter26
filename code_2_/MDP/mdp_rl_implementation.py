@@ -137,6 +137,8 @@ def policy_evaluation(mdp, policy):
         if (r, c) in mdp.terminal_states:
             continue
         action = policy[r][c]
+        if isinstance(action, str):
+            action = Action[action]
         probs = mdp.transition_function[action]
         for actual_action, prob in zip(mdp.actions, probs):
             next_state = mdp.step((r, c), actual_action)
@@ -165,7 +167,7 @@ def policy_iteration(mdp, policy_init):
     #
     optimal_policy = None
     # TODO:
-    new_policy = [row[:] for row in policy_init]
+    new_policy = policy_init
     # ====== YOUR CODE: ======
     while(True):
         U = policy_evaluation(mdp, new_policy)
@@ -195,6 +197,8 @@ def policy_iteration(mdp, policy_init):
 
 def get_sum_policy(mdp, U, state, action):
     sum = 0.0
+    if isinstance(action, str):
+        action = Action[action]
     probs = mdp.transition_function[action]
     
     for actual_action, prob in zip(mdp.actions, probs):
