@@ -104,11 +104,48 @@ def policy_iteration(mdp, policy_init):
     #
     optimal_policy = None
     # TODO:
+    new_policy = [row[:] for row in policy_init]
     # ====== YOUR CODE: ======
+    while(True):
+        U = policy_evaluation(mdp, new_policy)
+        unchanged = True
 
+        for row in range(mdp.num_row):
+            for col in range(mdp.num_col):
+                state = (row, col)
+
+                # skip WALL
+                if mdp.board[row][col] == "WALL":
+                    continue
+
+                # skip TERMINAL
+                if state in mdp.terminal_states:
+                    continue
+
+                if get_max_sum_action(mdp, U, (row, col)) > get_sum_policy(mdp, U, (row, col), new_policy[row][col]):
+                    new_policy[row][col] = get_max_action(mdp, U, state)
+                    unchanged = False
+        if unchanged:
+            break
+    
+    optimal_policy = new_policy        
     # ========================
     return optimal_policy
 
+def get_sum_policy(mdp, U, state, action):
+    sum = 0.0
+    probs = mdp.transition_function[action]
+    
+    for actual_action, prob in zip(mdp.actions, probs):
+        next_state = mdp.step(state, actual_action)
+        u_next = U[next_state[0]][next_state[1]]
+        
+        if u_next is None:
+            u_next = 0.0
+
+        sum += prob * u_next
+
+    return sum
 
 def mc_algorithm(
         sim,
