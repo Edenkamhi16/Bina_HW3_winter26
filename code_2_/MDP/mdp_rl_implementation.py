@@ -14,9 +14,62 @@ def value_iteration(mdp, U_init, epsilon=10 ** (-3)):
     U_final = None
     # TODO:
     # ====== YOUR CODE: ======
+    U_final = U_init.copy()
+    threshold = epsilon * (1 - mdp.gamma) / mdp.gamma
+    
+    while(True):
+        delta = 0
+        U_new = [row[:] for row in U_final]
+        
+        for row in range(mdp.num_row):
+            for col in range(mdp.num_col):
+                state = (row, col)
+                #if it is a WALL
+                if mdp.board[row][col] == "WALL":
+                    U_new[row][col] = None
+                    continue
 
+                #if state is TERMINAL get its reward
+                if state in mdp.terminal_states:
+                    U_new[row][col] = float(mdp.get_reward(state))
+                    continue
+                
+                R_state = float(mdp.get_reward(state))
+
+                U_temp = R_state + mdp.gamma * get_max_sum_action(mdp, U_final, (row, col))
+                
+                if abs(U_temp - U_final[row][col]) > delta:
+                    delta = abs(U_temp - U_final[row][col])
+
+                U_new[row][col] = U_temp
+        
+        U_final = U_new
+        if delta < threshold:
+            break
     # ========================
     return U_final
+
+def get_max_sum_action(mdp, U, state):
+    best_sum = float('-inf')
+    for action in mdp.actions:
+        action_sum = 0.0
+
+        probs = mdp.transition_function[action]
+        
+        for actual_action, prob in zip(mdp.actions, probs):
+            next_state = mdp.step(state, actual_action)
+            u_next = U[next_state[0]][next_state[1]]
+            
+            if u_next is None:
+                u_next = 0.0
+
+            action_sum += prob * u_next
+
+
+        if action_sum > best_sum:
+            best_sum = action_sum
+
+    return best_sum
 
 
 def get_policy(mdp, U):
