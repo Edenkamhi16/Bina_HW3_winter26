@@ -31,7 +31,9 @@ class ID3:
         impurity = 0.0
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        for lbl in counts:
+            prob_of_lbl = counts[lbl] / len(rows)
+            impurity -= prob_of_lbl * math.log2(prob_of_lbl)
         # ========================
 
         return impurity
@@ -55,7 +57,11 @@ class ID3:
 
         info_gain_value = 0.0
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        info_gain_value = current_uncertainty
+        p_left = len(left) / (len(left) + len(right))
+        p_right = len(right) / (len(left) + len(right))
+        info_gain_value -= p_left * self.entropy(left, left_labels)
+        info_gain_value -= p_right * self.entropy(right, right_labels)
         # ========================
 
         return info_gain_value
@@ -78,7 +84,15 @@ class ID3:
         assert len(rows) == len(labels), 'Rows size should be equal to labels size.'
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        true_rows, true_labels, false_rows, false_labels = [], [], [], []
+        for i in range(len(rows)):
+            if question.match(rows[i]):
+                true_rows.append(rows[i])
+                true_labels.append(labels[i])
+            else:
+                false_rows.append(rows[i])
+                false_labels.append(labels[i])
+        gain = self.info_gain(true_rows, true_labels, false_rows, false_labels, current_uncertainty)
         # ========================
 
         return gain, true_rows, true_labels, false_rows, false_labels
@@ -100,7 +114,18 @@ class ID3:
         current_uncertainty = self.entropy(rows, labels)
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        for feature_index, feature in enumerate(rows[0]):
+            for row in rows:
+                question = Question(feature, feature_index, row[feature_index])
+                gain, true_rows, true_labels, false_rows, false_labels = self.partition(rows, labels, question, current_uncertainty)
+                if gain >= best_gain:
+                    best_gain = gain
+                    best_question = question
+                    best_true_rows = true_rows
+                    best_true_labels = true_labels
+                    best_false_rows = false_rows
+                    best_false_labels = false_labels
+        
         # ========================
 
         return best_gain, best_question, best_true_rows, best_true_labels, best_false_rows, best_false_labels
@@ -121,7 +146,18 @@ class ID3:
         true_branch, false_branch = None, None
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        if len(set(labels)) == 1:
+            return Leaf(rows, labels)
+        best_gain, best_question, best_true_rows, best_true_labels, best_false_rows, best_false_labels = self.find_best_split(rows, labels)
+        self.used_features.add(best_question.column)
+        if best_true_rows is None or len(best_true_rows) == 0:
+            true_branch = Leaf(rows, labels)
+        else:
+            true_branch = self.build_tree(best_true_rows, best_true_labels)
+        if best_false_rows is None or len(best_false_rows) == 0:
+            false_branch = Leaf(rows, labels)
+        else:
+            false_branch = self.build_tree(best_false_rows, best_false_labels)
         # ========================
 
         return DecisionNode(best_question, true_branch, false_branch)
@@ -135,7 +171,7 @@ class ID3:
         # TODO: Build the tree that fits the input data and save the root to self.tree_root
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        self.tree_root = self.build_tree(x_train, y_train)
         # ========================
 
     def predict_sample(self, row, node: DecisionNode or Leaf = None):
@@ -153,7 +189,18 @@ class ID3:
         prediction = None
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        if isinstance(node, Leaf):
+            prediction = None
+            max_count = -1
+            for lbl, cnt in node.predictions.items():
+                if cnt > max_count:
+                    max_count = cnt
+                    prediction = lbl
+        else:
+            if node.question.match(row):
+                prediction = self.predict_sample(row, node.true_branch)
+            else:
+                prediction = self.predict_sample(row, node.false_branch)
         # ========================
 
         return prediction
@@ -170,7 +217,7 @@ class ID3:
         y_pred = None
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError
+        y_pred = np.array([self.predict_sample(row) for row in rows])
         # ========================
 
         return y_pred
