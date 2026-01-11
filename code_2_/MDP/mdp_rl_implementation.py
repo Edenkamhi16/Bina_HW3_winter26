@@ -228,7 +228,36 @@ def mc_algorithm(
     V = None
 
     # ====== YOUR CODE: ======
+    V = [[0.0 for _ in range(num_cols)] for _ in range(num_rows)]
+    returns = [[[] for _ in range(num_cols)] for _ in range(num_rows)]
 
+    for episode_gen in sim.replay(num_episodes=num_episodes):
+        episode = list(episode_gen)  # list of (state, reward, action, actual_action)
+        G = 0.0
+        G_list = [0.0] * len(episode)
+        for t in range(len(episode) - 1, -1, -1):
+            state, reward, action, actual_action = episode[t]
+            if reward is None:
+                reward = 0.0
+            G = reward + gamma * G
+            G_list[t] = G
+
+        #update only first time each state appears
+        seen = set()
+        for t, (state, reward, action, actual_action) in enumerate(episode):
+            if state in seen:
+                continue
+            seen.add(state)
+            r, c = state
+            returns[r][c].append(G_list[t])
+            V[r][c] = sum(returns[r][c]) / len(returns[r][c]) #average
+
+    # mark walls as None
+    if policy is not None:
+        for r in range(num_rows):
+            for c in range(num_cols):
+                if policy[r][c] is None:
+                    V[r][c] = None
     # =========================
 
     return V
