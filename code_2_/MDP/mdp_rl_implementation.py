@@ -256,8 +256,9 @@ def mc_algorithm(
     if policy is not None:
         for r in range(num_rows):
             for c in range(num_cols):
-                if policy[r][c] is None and V[r][c] == 0:
+                if policy[r][c] is None and V[r][c] == 0.0:
                     V[r][c] = None
+
     # =========================
 
     return V
