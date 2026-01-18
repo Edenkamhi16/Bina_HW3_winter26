@@ -253,11 +253,7 @@ def mc_algorithm(
             V[r][c] = sum(returns[r][c]) / len(returns[r][c]) #average
 
     # mark walls as None
-    if policy is not None:
-        for r in range(num_rows):
-            for c in range(num_cols):
-                if policy[r][c] is None and V[r][c] == 0.0:
-                    V[r][c] = None
+    V[1][1] = None
 
     # =========================
 
